@@ -14,6 +14,10 @@ const jsonParser = bodyParser.json();
 const BASE_URL = 'https://api.challonge.com/v1/tournaments';
 const BASE_URL_SUFFIX = '.json';
 
+app.get('/hello', async (req, res) => {
+  res.status(200).json({ hello: true });
+});
+
 app.get('/tournaments', async (req, res) => {
   try {
     const parsed = url.parse(req.url, true).query;
