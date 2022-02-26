@@ -1,9 +1,12 @@
 const express = require('express');
 const url = require('url');
+const https = require('https');
+const fs = require('fs');
 const helmet = require('helmet');
 const cors = require('cors');
 const axios = require('axios');
 const bodyParser = require('body-parser');
+const { fstat } = require('fs');
 
 const app = express();
 app.use(helmet());
@@ -198,3 +201,13 @@ app.post('/match/reopen', jsonParser, async (req, res) => {
 });
 
 app.listen(3001);
+
+https
+.createServer(
+  {
+    key: fs.readFileSync('server.key'),
+    cert: fs.readFileSync('server.cert'),
+  },
+  app
+)
+.listen(3443, () => console.log('https listening on 3443'));
