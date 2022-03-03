@@ -65,13 +65,20 @@ app.get('/tournament', async (req, res) => {
     if (!params.has('api_key')) {
       throw 'api_key param is required';
     }
-    if (!params.has('name')) {
-      throw 'name param is required';
+    // name or tournament id lookup. use id first
+    if (!params.has('name') && !params.has('tournament_id')) {
+      throw 'tournament_id/name required';
+    }
+    let idPath = '';
+    if (params.has('tournament_id')) {
+      idPath = params.get('tournament_id');
+    } else {
+      idPath = `${params.get('subdomain')}-${params.get(
+        'name'
+      )}`;
     }
     const response = await axios({
-      url: `${BASE_URL}/${params.get('subdomain')}-${params.get(
-        'name'
-      )}${BASE_URL_SUFFIX}?api_key=${params.get('api_key')}`,
+      url: `${BASE_URL}/${idPath}${BASE_URL_SUFFIX}?api_key=${params.get('api_key')}`,
       method: 'get',
     });
     res.status(200).json(response.data);
@@ -93,13 +100,19 @@ app.get('/matches', async (req, res) => {
     if (!params.has('api_key')) {
       throw 'api_key param is required';
     }
-    if (!params.has('name')) {
-      throw 'name param is required';
+    if (!params.has('name') && !params.has('tournament_id')) {
+      throw 'tournament_id/name required';
+    }
+    let idPath = '';
+    if (params.has('tournament_id')) {
+      idPath = params.get('tournament_id');
+    } else {
+      idPath = `${params.get('subdomain')}-${params.get(
+        'name'
+      )}`;
     }
     const response = await axios({
-      url: `${BASE_URL}/${params.get('subdomain')}-${params.get(
-        'name'
-      )}/matches${BASE_URL_SUFFIX}?api_key=${params.get('api_key')}`,
+      url: `${BASE_URL}/${idPath}/matches${BASE_URL_SUFFIX}?api_key=${params.get('api_key')}`,
       method: 'get',
     });
     res.status(200).json(response.data);
@@ -120,13 +133,19 @@ app.get('/players', async (req, res) => {
     if (!params.has('api_key')) {
       throw 'api_key param is required';
     }
-    if (!params.has('name')) {
-      throw 'name param is required';
+    if (!params.has('name') && !params.has('tournament_id')) {
+      throw 'tournament_id/name required';
+    }
+    let idPath = '';
+    if (params.has('tournament_id')) {
+      idPath = params.get('tournament_id');
+    } else {
+      idPath = `${params.get('subdomain')}-${params.get(
+        'name'
+      )}`;
     }
     const response = await axios({
-      url: `${BASE_URL}/${params.get('subdomain')}-${params.get(
-        'name'
-      )}/participants${BASE_URL_SUFFIX}?api_key=${params.get('api_key')}`,
+      url: `${BASE_URL}/${idPath}/participants${BASE_URL_SUFFIX}?api_key=${params.get('api_key')}`,
       method: 'get',
     });
     res.status(200).json(response.data);
@@ -138,29 +157,7 @@ app.get('/players', async (req, res) => {
 
 // get player lists for multiple tournaments
 app.get('/players-multi', async (req, res) => {
-  try {
-    const parsed = url.parse(req.url, true).query;
-    const params = new URLSearchParams(parsed);
-    if (!params.has('subdomain')) {
-      throw 'subdomain param is required';
-    }
-    if (!params.has('api_key')) {
-      throw 'api_key param is required';
-    }
-    if (!params.has('name')) {
-      throw 'name param is required';
-    }
-    const response = await axios({
-      url: `${BASE_URL}/${params.get('subdomain')}-${params.get(
-        'name'
-      )}/participants${BASE_URL_SUFFIX}?api_key=${params.get('api_key')}`,
-      method: 'get',
-    });
-    res.status(200).json(response.data);
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ error: err });
-  }
+  res.status(200).json({ todo: 'todo' });
 });
 
 // update/submit match results and/or scores
@@ -168,7 +165,7 @@ app.get('/players-multi', async (req, res) => {
 app.put('/match', jsonParser, async (req, res) => {
   try {
     const { body: reqBody } = req;
-    const { subdomain, api_key, name, match_id, winner_id, scores_csv } =
+    const { subdomain, api_key, name, match_id, winner_id, scores_csv, tournament_id } =
       reqBody;
     if (!subdomain) {
       throw 'subdomain param is required';
@@ -176,8 +173,8 @@ app.put('/match', jsonParser, async (req, res) => {
     if (!api_key) {
       throw 'api_key param is required';
     }
-    if (!name) {
-      throw 'name param is required';
+    if (!name && !tournament_id) {
+      throw 'tournament_id/name required';
     }
     if (!match_id) {
       throw 'match_id param is required';
@@ -185,8 +182,13 @@ app.put('/match', jsonParser, async (req, res) => {
     if (!winner_id) {
       throw 'winner_id param is required';
     }
-
-    const putUrl = `${BASE_URL}/${subdomain}-${name}/matches/${match_id}${BASE_URL_SUFFIX}?api_key=${api_key}`;
+    let idPath = '';
+    if (tournament_id) {
+      idPath = tournament_id;
+    } else {
+      idPath = `${subdomain}-${name}`;
+    }
+    const putUrl = `${BASE_URL}/${idPath}/matches/${match_id}${BASE_URL_SUFFIX}?api_key=${api_key}`;
     const putBody = {
       match: {
         winner_id,
