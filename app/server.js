@@ -182,6 +182,7 @@ app.get('/players-set', async (req, res) => {
     // name 'ebomb' found in two tournaments:
     // ex: "ebomb": ["12345", "54321"]
     const resArray = await Promise.all(reqArray);
+    const playerNames = [];
     const playerSet = {};
     resArray.forEach(res => {
       const { data: playerArr = [] } = res || {};
@@ -191,10 +192,11 @@ app.get('/players-set', async (req, res) => {
           playerSet[p.name].push(`${p.tournament_id}`);
         } else {
           playerSet[p.name] = [`${p.tournament_id}`];
+          playerNames.push(p.name);
         }
       });
     });
-    res.status(200).json({ data: playerSet });
+    res.status(200).json({ entities: playerSet, names: playerNames });
   } catch (err) {
     console.log(err);
     res.status(500).json({ error: err });
