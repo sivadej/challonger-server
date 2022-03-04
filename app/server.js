@@ -156,8 +156,44 @@ app.get('/players', async (req, res) => {
 });
 
 // get player lists for multiple tournaments
-app.get('/players-multi', async (req, res) => {
-  res.status(200).json({ todo: 'todo' });
+app.get('/players-set', async (req, res) => {
+  const parsed = url.parse(req.url, true).query;
+  const params = new URLSearchParams(parsed);
+  if (!params.has('api_key')) {
+    throw 'api_key param is required';
+  }
+  if (!params.has('tournament_ids')) {
+    throw 'tournament_ids param is required';
+  }
+  const ids = params.get('tournament_ids');
+
+  // create array of ids from comma-separated string param
+  const idsArray = ids.split(',');
+
+  // create array of fetch promises from idsArray
+  const reqArray = [];
+  idsArray.forEach(id => {
+    reqArray.push(axios.get(`${BASE_URL}/${id}/participants${BASE_URL_SUFFIX}?api_key=${params.get('api_key')}`));
+  });
+
+  // extract all player data from each result
+  // create "set" of unique player name strings and tournament_ids entered
+  // name 'ebomb' found in two tournaments:
+  // ex: "ebomb": ["12345", "54321"]
+  const resArray = await Promise.all(reqArray);
+  const playerSet = {};
+  resArray.forEach(res => {
+    const { data: playerArr = [] } = res || {};
+    playerArr.forEach(o => {
+      const { participant: p } = o || {};
+      if (playerSet.hasOwnProperty(p.name)) {
+        playerSet[p.name].push(`${p.tournament_id}`);
+      } else {
+        playerSet[p.name] = [`${p.tournament_id}`];
+      }
+    });
+  });
+  res.status(200).json({ data: playerSet });
 });
 
 // update/submit match results and/or scores
