@@ -2,7 +2,6 @@ const BASE_URL = 'https://api.challonge.com/v1/tournaments';
 const BASE_URL_SUFFIX = '.json';
 
 import express from 'express';
-import url from 'url';
 import helmet from 'helmet';
 import cors from 'cors';
 import axios from 'axios';
@@ -57,7 +56,7 @@ app.get('/tournaments', async (req, res) => {
 });
 
 // get tournament by id or name
-// - includes array of matches
+// - includes array of matches and players
 // GET https://api.challonge.com/v1/tournaments/{tournament}.{json|xml}
 app.get('/tournament', async (req, res) => {
   try {
@@ -82,7 +81,7 @@ app.get('/tournament', async (req, res) => {
       idPath = `${params['subdomain']}-${params['name']}`;
     }
     const response = await axios({
-      url: `${BASE_URL}/${idPath}${BASE_URL_SUFFIX}?api_key=${params['api_key']}&include_participants=0&include_matches=1`,
+      url: `${BASE_URL}/${idPath}${BASE_URL_SUFFIX}?api_key=${params['api_key']}&include_participants=1&include_matches=1`,
       method: 'get',
     });
     res.status(200).json(response.data);
@@ -226,13 +225,13 @@ app.put('/match', jsonParser, async (req, res) => {
   try {
     const { body: reqBody } = req;
     const {
-      subdomain,
       api_key,
-      name,
       match_id,
-      winner_id,
+      name,
       scores_csv,
+      subdomain,
       tournament_id,
+      winner_id,
     } = reqBody;
     if (!subdomain) {
       throw new Error('subdomain param is required');
