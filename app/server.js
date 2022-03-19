@@ -53,7 +53,8 @@ app.get('/tournaments', async (req, res) => {
   }
 });
 
-// tournament by subdomain and name
+// get tournament by id or name
+// - includes array of matches
 // GET https://api.challonge.com/v1/tournaments/{tournament}.{json|xml}
 app.get('/tournament', async (req, res) => {
   try {
@@ -78,7 +79,7 @@ app.get('/tournament', async (req, res) => {
       )}`;
     }
     const response = await axios({
-      url: `${BASE_URL}/${idPath}${BASE_URL_SUFFIX}?api_key=${params.get('api_key')}`,
+      url: `${BASE_URL}/${idPath}${BASE_URL_SUFFIX}?api_key=${params.get('api_key')}&include_participants=0&include_matches=1`,
       method: 'get',
     });
     res.status(200).json(response.data);
@@ -189,6 +190,56 @@ app.get('/players-set', async (req, res) => {
       playerArr.forEach(o => {
         const { participant: p } = o || {};
         if (playerSet.hasOwnProperty(p.name)) {
+          playerSet[p.name].push({ tournamentId: `${p.tournament_id}`, playerId: `${p.id}` });
+        } else {
+          playerSet[p.name] = [{ tournamentId: `${p.tournament_id}`, playerId: `${p.id}` }];
+          playerNames.push(p.name);
+        }
+      });
+    });
+    res.status(200).json({ entities: playerSet, names: playerNames });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: err });
+  }
+});
+
+app.get('/matches-set', async (req, res) => {
+  try {
+    const parsed = url.parse(req.url, true).query;
+    const params = new URLSearchParams(parsed);
+    if (!params.has('api_key')) {
+      throw 'api_key param is required';
+    }
+    if (!params.has('tournament_ids')) {
+      throw 'tournament_ids param is required';
+    }
+    const ids = params.get('tournament_ids');
+
+    // create array of ids from comma-separated string param
+    const idsArray = ids.split(',');
+
+  // create array of fetch promises from idsArray
+    const reqArray = [];
+    idsArray.forEach(id => {
+      reqArray.push(axios.get(`${BASE_URL}/${id}/participants${BASE_URL_SUFFIX}?api_key=${params.get('api_key')}`));
+    });
+
+    // extract all player data from each result
+    // create "set" of unique player name strings and tournament_ids entered
+    // name 'ebomb' found in two tournaments:
+    // "ebomb": [
+    //    { tournamentId: "12345", playerId: "7890" },
+    //    { tournamentId: "23456", playerId: "9876" },
+    // ]
+    const resArray = await Promise.all(reqArray);
+    const playerNames = [];
+    const playerSet = {};
+    resArray.forEach(res => {
+      const { data: playerArr = [] } = res || {};
+      playerArr.forEach(o => {
+        const { participant: p } = o || {};
+        if (playerSet.hasOwnProperty(p.name)) {
           playerSet[p.name].push(`${p.tournament_id}`);
         } else {
           playerSet[p.name] = [`${p.tournament_id}`];
@@ -281,4 +332,4 @@ app.post('/match/reopen', jsonParser, async (req, res) => {
   }
 });
 
-app.listen(3001);
+app.listen(3001, ()=>console.log('listening on port 3001'));
