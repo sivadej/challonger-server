@@ -13,6 +13,8 @@ const app = express();
 
 app.use(helmet());
 app.use(cors());
+
+// logging middleware
 app.use((req, res, next) => {
   console.log(`
     ${new Date().toLocaleString()}
@@ -56,7 +58,7 @@ app.get('/tournaments', async (req, res) => {
 });
 
 // get tournament by id or name
-// - includes array of matches and players
+// - includes array of matches
 // GET https://api.challonge.com/v1/tournaments/{tournament}.{json|xml}
 app.get('/tournament', async (req, res) => {
   try {
@@ -81,7 +83,7 @@ app.get('/tournament', async (req, res) => {
       idPath = `${params['subdomain']}-${params['name']}`;
     }
     const response = await axios({
-      url: `${BASE_URL}/${idPath}${BASE_URL_SUFFIX}?api_key=${params['api_key']}&include_participants=1&include_matches=1`,
+      url: `${BASE_URL}/${idPath}${BASE_URL_SUFFIX}?api_key=${params['api_key']}&include_participants=0&include_matches=1`,
       method: 'get',
     });
     res.status(200).json(response.data);
@@ -195,6 +197,13 @@ app.get('/players-set', async (req, res) => {
     const playerSet: {
       [k: string]: { tournamentId: string; playerId: string }[];
     } = {};
+
+    // playerDict: lookup player name by id.
+    // needed because playername has unique id per tournament.
+    // more performant than re-querying each tournament and player set
+    // then searching through the arrays for name/id match.
+    const playerDict: { [pId: string]: string } = {};
+
     resArray.forEach((res) => {
       const { data: playerArr = [] } = res || {};
       playerArr.forEach((node: { participant: Record<string, any> }) => {
@@ -210,9 +219,10 @@ app.get('/players-set', async (req, res) => {
           ];
           playerNames.push(p.name);
         }
+        playerDict[p.id] = p.name;
       });
     });
-    res.status(200).json({ entities: playerSet, names: playerNames });
+    res.status(200).json({ entities: playerSet, names: playerNames, playerDict });
   } catch (err) {
     console.log(err);
     res.status(500).json({ error: err });
