@@ -256,7 +256,7 @@ app.put("/match", jsonParser, async (req, res) => {
     if (!api_key) {
       throw new Error("api_key param is required");
     }
-    if (!name && !tournament_id) {
+    if (!tournament_id) {
       throw new Error("tournament_id/name required");
     }
     if (!match_id) {
