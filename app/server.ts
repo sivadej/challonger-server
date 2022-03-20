@@ -229,7 +229,7 @@ app.get("/players-set", async (req, res) => {
     });
     res
       .status(200)
-      .json({ entities: playerSet, names: playerNames, playerDict });
+      .json({ entities: playerSet, names: playerNames.sort(), playerDict });
   } catch (err) {
     console.log(err);
     res.status(500).json({ error: err });
